@@ -58,9 +58,11 @@ export class EmployeeService {
       position,
     );
 
-    if (!savedSalary) {
-      savedEmployee.remove();
-    }
+    const savedEmployeeSalary = await this._employeeSalaryRepository.save(
+      savedSalary,
+    );
+
+    if (!savedEmployeeSalary) throw new BadRequestException();
     return plainToClass(ReadEmployeeDto, savedEmployee);
   }
 
@@ -70,6 +72,7 @@ export class EmployeeService {
     position: Position,
   ) {
     const employeSalary: EmployeeSalary = new EmployeeSalary();
+    console.log(position);
 
     employeSalary.employeId = employeeID;
     employeSalary.salario = salario;
@@ -78,13 +81,7 @@ export class EmployeeService {
     employeSalary.pension = salario * position.porcentajePnsion;
     employeSalary.primas = salario * position.porcentajePrimas;
     employeSalary.positionName = position.name;
-
-    const savedEmployeeSalary = await this._employeeSalaryRepository.save(
-      employeSalary,
-    );
-    if (savedEmployeeSalary) return false;
-
-    return true;
+    return employeSalary;
   }
 
   async getEmployees(): Promise<{
@@ -99,5 +96,76 @@ export class EmployeeService {
       employees: plainToClass(ReadEmployeeDto, employees[0]),
       count: employees[1],
     };
+  }
+  async getEmployee(id: number): Promise<any> {
+    const employee = await this._employeeSalaryRepository.findOne({
+      where: { employeId: id },
+    });
+    // const total =
+    if (!employee) throw new NotFoundException('No se pudo crear al usuario');
+
+    return employee;
+  }
+
+  async updateEmployee(
+    id: number,
+    createEmploye: CreateEmployeeDto,
+  ): Promise<ReadEmployeeDto> {
+    const {
+      addres,
+      document,
+      name,
+      phone,
+      positionId,
+      salario,
+    } = createEmploye;
+
+    const employee = await this._employeeRepository.findOne(id);
+    if (!employee) throw new BadRequestException('Not found employee');
+
+    employee.addres = addres;
+    employee.document = document;
+    employee.name = name;
+    employee.phone = phone;
+    const position = await this._positionRepository.findOne(positionId);
+
+    const salary = await this.saveSalary(id, salario, position);
+
+    const findSalary = await this._employeeSalaryRepository.findOne({
+      where: { employeId: id },
+    });
+    if (!findSalary) throw new BadRequestException('Not found employee');
+
+    findSalary.employeId = salary.employeId;
+    findSalary.salario = salary.salario;
+    findSalary.impuestos = salary.impuestos;
+    findSalary.salud = salary.salud;
+    findSalary.pension = salary.pension;
+    findSalary.primas = salary.primas;
+    findSalary.positionName = salary.positionName;
+
+    await findSalary.save();
+    await employee.save();
+    return plainToClass(ReadEmployeeDto, employee);
+  }
+
+  async deleteEmployee(id: number) {
+    const salary = await this._employeeSalaryRepository.findOne({
+      where: {
+        employeId: id,
+      },
+    });
+    if (!salary) throw new BadRequestException();
+    const sr = await salary.remove();
+
+    if (!sr) throw new BadRequestException();
+
+    const employee = await this._employeeRepository.findOne(id);
+    if (!employee) throw new BadRequestException();
+
+    const er = await employee.remove();
+    if (!er) throw new BadRequestException();
+
+    return true;
   }
 }

@@ -37,7 +37,7 @@ export class PositionService {
   }
 
   async getEmployees(): Promise<{
-    employees: ReadPositionDto[];
+    positions: ReadPositionDto[];
     count: number;
   }> {
     const employees = await this._positionRepository.findAndCount();
@@ -45,7 +45,7 @@ export class PositionService {
     if (!employees) throw new NotFoundException('No se pudo crear al usuario');
 
     return {
-      employees: plainToClass(ReadPositionDto, employees[0]),
+      positions: plainToClass(ReadPositionDto, employees[0]),
       count: employees[1],
     };
   }
