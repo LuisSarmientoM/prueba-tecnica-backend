@@ -14,7 +14,7 @@ export class ReadPositionDto {
   porcentajeSalud: number;
 
   @Expose()
-  porcentajePension: number;
+  porcentajePnsion: number;
 
   @Expose()
   porcentajePrimas: number;
